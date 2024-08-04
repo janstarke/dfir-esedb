@@ -5,20 +5,14 @@ pub type Result<T> = std::result::Result<T, EsedbError>;
 #[derive(Error, Debug)]
 pub enum EsedbError {
     #[error("an IO error has occurred: {0}")]
-    IoError(std::io::Error),
+    IoError(#[from] std::io::Error),
 
     #[error("a parser error has occurred: {0}")]
-    ParserError(binrw::Error),
-}
+    ParserError(#[from] binrw::Error),
 
-impl From<std::io::Error> for EsedbError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(value)
-    }
-}
+    #[error("invalid checksum! expected 0x{expected:08x} but found 0x{actual:08x} instead")]
+    ChecksumError{expected: u32, actual: u32},
 
-impl From<binrw::Error> for EsedbError {
-    fn from(value: binrw::Error) -> Self {
-        Self::ParserError(value)
-    }
+    #[error(transparent)]
+    Other(#[from] anyhow::Error)
 }

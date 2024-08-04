@@ -1,9 +1,14 @@
-use std::{fs::File, io::BufReader, path::Path};
+use std::{
+    fs::File,
+    io::{BufReader, Seek},
+    path::Path,
+};
 
-use binrw::BinRead;
+use anyhow::anyhow;
+use binrw::{BinRead, BinReaderExt, VecArgs};
 use getset::Getters;
 
-use crate::{FileHeader, FileHeaderWithChecksum};
+use crate::{EsedbError, FileHeader, FileHeaderWithChecksum};
 
 #[derive(Getters)]
 #[getset(get = "pub")]
@@ -19,7 +24,32 @@ impl EseDb {
     /// Open an EseDB database file
     pub fn open(filename: &Path) -> crate::Result<Self> {
         let mut reader = BufReader::new(File::open(filename)?);
-        let header = FileHeaderWithChecksum::read_le(&mut reader)?.into_header();
+        let header = FileHeaderWithChecksum::read_le(&mut reader)?;
+        let expected_checksum = *header.checksum();
+        let header = header.into_header();
+        let page_size = *header.page_size();
+
+        if page_size % 4 != 0 {
+            return Err(anyhow!("unexpected page size: {page_size}").into());
+        }
+
+        // step to the first byte after the magic value
+        let ignore_bytes = 8;
+        reader.seek(std::io::SeekFrom::Start(ignore_bytes.into()))?;
+
+        let bytes: Vec<u32> = reader.read_le_args(VecArgs {
+            count: ((page_size - ignore_bytes) / 4).try_into().unwrap(),
+            inner: (),
+        })?;
+
+        let checksum = bytes.into_iter().fold(0, |x1, x2| x1 ^ x2);
+        if checksum != expected_checksum {
+            return Err(EsedbError::ChecksumError {
+                actual: checksum,
+                expected: expected_checksum,
+            });
+        }
+
         Ok(Self { reader, header })
     }
 }
