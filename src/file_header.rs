@@ -1,7 +1,7 @@
 use binrw::binread;
 use getset::Getters;
 
-use crate::{DbTime, FileFormatVersion, FileType, JetSignature};
+use crate::{DatabaseState, DbTime, FileFormatVersion, FileType, JetSignature};
 
 #[binread]
 #[brw(little, magic = b"\xef\xcd\xab\x89")]
@@ -12,6 +12,7 @@ pub struct FileHeader {
     file_type: FileType,
     database_time: DbTime,
     database_signature: JetSignature,
+    database_state: DatabaseState,
 }
 
 #[binread]

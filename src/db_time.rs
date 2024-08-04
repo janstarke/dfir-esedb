@@ -15,5 +15,6 @@ pub struct DbTime {
     seconds: u8,
 
     #[br(temp, count = 5)]
-    padding: Vec<u8>,
+    #[getset(skip)]
+    _padding: Vec<u8>,
 }
