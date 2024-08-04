@@ -5,6 +5,17 @@ use dfir_esedb::EseDb;
 #[test]
 fn test_open() {
     let db = EseDb::open(&get_test_data("ntds_plain.dit")).unwrap();
+
+    assert_eq!(db.header().database_time().hours(), &21);
+    assert_eq!(db.header().database_time().minutes(), &45);
+    assert_eq!(db.header().database_time().seconds(), &2);
+    assert_eq!(db.header().database_signature().creation_date_and_time().years(), &2017);
+    assert_eq!(db.header().database_signature().creation_date_and_time().months(), &11);
+    assert_eq!(db.header().database_signature().creation_date_and_time().days(), &10);
+    assert_eq!(db.header().database_signature().creation_date_and_time().hours(), &19);
+    assert_eq!(db.header().database_signature().creation_date_and_time().minutes(), &25);
+    assert_eq!(db.header().database_signature().creation_date_and_time().seconds(), &43);
+    assert_eq!(db.header().database_signature().computer_name(), "");
 }
 
 fn get_test_data(filename: &str) -> PathBuf {
