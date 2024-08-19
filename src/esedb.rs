@@ -1,22 +1,25 @@
 use std::{
+    collections::HashMap,
     fs::File,
-    io::{BufReader, Seek},
+    io::{BufReader, Cursor, ErrorKind, Read, Seek},
     path::Path,
+    rc::Rc,
 };
 
 use anyhow::anyhow;
 use binrw::{BinRead, BinReaderExt, VecArgs};
 use getset::Getters;
 
-use crate::{EsedbError, FileHeader, FileHeaderWithChecksum};
+use crate::{EsedbError, FileHeader, FileHeaderWithChecksum, Page};
 
 #[derive(Getters)]
 #[getset(get = "pub")]
 /// <https://github.com/libyal/libesedb/blob/main/documentation/Extensible%20Storage%20Engine%20(ESE)%20Database%20File%20(EDB)%20format.asciidoc>
 pub struct EseDb {
     #[getset(skip)]
-    reader: BufReader<File>,
+    _reader: BufReader<File>,
     header: FileHeader,
+    pages: HashMap<u64, Rc<Page>>,
 }
 
 impl EseDb {
@@ -50,6 +53,35 @@ impl EseDb {
             });
         }
 
-        Ok(Self { reader, header })
+        // read all Pages
+        let mut pages = HashMap::new();
+        let mut buffer = vec![0u8; *header.page_size() as usize];
+        //let mut next_page_offset = reader.stream_position()?;
+        loop {
+            let page_offset = reader.stream_position()?;
+
+            if let Err(why) = reader.read_exact(&mut buffer) {
+                if why.kind() == ErrorKind::UnexpectedEof {
+                    break;
+                } else {
+                    return Err(why.into());
+                }
+            }
+
+            let mut page_reader = Cursor::new(&buffer);
+            let page = page_reader.read_le_args::<Page>((
+                *header.page_size(),
+                *header.file_format_version(),
+                *header.file_format_revision(),
+            ))?;
+
+            pages.insert(page_offset, Rc::new(page));
+        }
+
+        Ok(Self {
+            _reader: reader,
+            header,
+            pages,
+        })
     }
 }

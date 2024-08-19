@@ -2,6 +2,7 @@ use binrw::binrw;
 
 #[binrw]
 #[brw(little, repr=u32)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum FileFormatVersion {
     /// Original operating system Beta format (April 22, 1997).
     Original = 0x00000620,

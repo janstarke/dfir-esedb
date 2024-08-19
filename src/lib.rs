@@ -26,6 +26,10 @@ mod jet_logtime;
 mod jet_lgpos;
 mod jet_bkinfo;
 mod database_state;
+mod page;
+mod page_header;
+mod page_flags;
+mod page_tag;
 
 pub use esedb::*;
 pub use error::*;
@@ -39,5 +43,9 @@ pub use jet_logtime::*;
 pub use jet_lgpos::*;
 pub use jet_bkinfo::*;
 pub use database_state::*;
+pub use page::*;
+pub use page_header::*;
+pub use page_flags::*;
+pub use page_tag::*;
 
 pub (crate) mod util;
